@@ -14,6 +14,10 @@ CHAT_ID = "8412394779"
 async def get_form(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
 @app.post("/upload")
 async def upload_video(file: UploadFile = File(...)):
     contents = await file.read()
